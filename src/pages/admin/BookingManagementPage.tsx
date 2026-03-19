@@ -65,9 +65,9 @@ const BookingManagementPage: React.FC = () => {
     };
     const getDriverName = (driverId: string | null | undefined) => {
         if (!driverId) return 'Chua gan';
-        return drivers.find(d => d.id === driverId)?.name || '...';
+        return drivers.find(d => String(d.id) === driverId)?.fullName || '...';
     };
-    const availableDrivers = drivers.filter(d => d.status === 'available');
+    const availableDrivers = drivers.filter(d => d.driverStatus === 'available');
 
     // Filtered bookings
     const filteredBookings = filterStatus === 'all'
@@ -267,18 +267,18 @@ const EditBookingForm: React.FC<EditBookingFormProps> = ({
 
     // Tạo options cho SearchableComboBox tài xế
     const driverOptions: ComboBoxOption[] = availableDrivers.map(d => ({
-        value: d.id,
-        label: d.name,
-        sublabel: `${d.phone}${d.licensePlate ? ' | ' + d.licensePlate : ''} - Ranh`,
+        value: String(d.id),
+        label: d.fullName,
+        sublabel: `${d.phone || ''}${d.licensePlate ? ' | ' + d.licensePlate : ''} - Sẵn sàng`,
     }));
     // Nếu booking đã gán tài xế nhưng tài xế đã bận, vẫn hiển thị
-    if (booking.driverId && !availableDrivers.find(d => d.id === booking.driverId)) {
-        const assignedDriver = allDrivers.find(d => d.id === booking.driverId);
+    if (booking.driverId && !availableDrivers.find(d => String(d.id) === booking.driverId)) {
+        const assignedDriver = allDrivers.find(d => String(d.id) === booking.driverId);
         if (assignedDriver) {
             driverOptions.unshift({
-                value: assignedDriver.id,
-                label: assignedDriver.name,
-                sublabel: `${assignedDriver.phone} - Da gan (dang ban)`,
+                value: String(assignedDriver.id),
+                label: assignedDriver.fullName,
+                sublabel: `${assignedDriver.phone || ''} - Đã gán (đang bận)`,
             });
         }
     }

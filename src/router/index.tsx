@@ -16,6 +16,7 @@ import ProfilePage from '../pages/ProfilePage';
 import ContactPage from '../pages/ContactPage';
 import PolicyPage from '../pages/PolicyPage';
 import NotFoundPage from '../pages/NotFoundPage';
+import DriverDashboardPage from '../pages/DriverDashboardPage';
 
 // === Admin Pages ===
 import DashboardPage from '../pages/admin/DashboardPage';
@@ -47,15 +48,19 @@ const AppRoutes = () => {
                 {/* Routes cần login */}
                 <Route
                     path="/booking/:departureId"
-                    element={ <ProtectedRoute allowedRoles={['USER']}> <BookingPage /> </ProtectedRoute> }
+                    element={ <ProtectedRoute allowedRoles={['USER', 'DRIVER']}> <BookingPage /> </ProtectedRoute> }
                 />
                 <Route
                     path="/my-bookings"
-                    element={ <ProtectedRoute allowedRoles={['USER']}> <MyBookingsPage /> </ProtectedRoute> }
+                    element={ <ProtectedRoute allowedRoles={['USER', 'DRIVER']}> <MyBookingsPage /> </ProtectedRoute> }
                 />
                 <Route
                     path="/profile"
-                    element={ <ProtectedRoute allowedRoles={['USER', 'ADMIN']}> <ProfilePage /> </ProtectedRoute> }
+                    element={ <ProtectedRoute allowedRoles={['USER', 'ADMIN', 'DRIVER']}> <ProfilePage /> </ProtectedRoute> }
+                />
+                <Route
+                    path="/driver/dashboard"
+                    element={ <ProtectedRoute allowedRoles={['DRIVER']}> <DriverDashboardPage /> </ProtectedRoute> }
                 />
             </Route>
 

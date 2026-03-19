@@ -99,7 +99,7 @@ const Header = () => {
                                     <div className="relative group">
                                         <button className="flex items-center gap-2 text-gray-700 hover:text-primary transition-colors">
                                             <UserCircleIcon className="h-6 w-6" />
-                                            <span className="font-medium">{user?.username}</span>
+                                            <span className="font-medium">{user?.fullName}</span>
                                         </button>
 
                                         {/* Dropdown Menu */}
@@ -123,6 +123,14 @@ const Header = () => {
                                                         className="block px-4 py-2 text-gray-700 hover:bg-gradient-to-r hover:from-pink-50 hover:to-orange-50 hover:text-primary transition-colors"
                                                     >
                                                         Trang Admin
+                                                    </Link>
+                                                )}
+                                                {user?.role === 'DRIVER' && (
+                                                    <Link
+                                                        to="/driver/dashboard"
+                                                        className="block px-4 py-2 text-gray-700 hover:bg-gradient-to-r hover:from-pink-50 hover:to-orange-50 hover:text-primary transition-colors"
+                                                    >
+                                                        Trang Tài xế
                                                     </Link>
                                                 )}
                                                 <hr className="my-2" />
@@ -208,7 +216,7 @@ const Header = () => {
                             <div className="flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-xl p-3">
                                 <UserCircleIcon className="h-10 w-10 text-white" />
                                 <div>
-                                    <p className="text-white font-bold">{user?.username}</p>
+                                    <p className="text-white font-bold">{user?.fullName}</p>
                                     <p className="text-white/80 text-sm">{user?.email}</p>
                                 </div>
                             </div>

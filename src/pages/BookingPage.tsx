@@ -33,7 +33,7 @@ const BookingPage = () => {
 
     // Form state
     const [formData, setFormData] = useState({
-        customerName: user?.username || '',
+        customerName: user?.fullName || '',
         customerEmail: user?.email || '',
         customerPhone: '',
         numberOfPeople: 1,

@@ -6,12 +6,12 @@ import { EyeIcon, EyeSlashIcon, SparklesIcon } from '@heroicons/react/24/outline
 import { ButtonLoader } from '../components/Loading';
 
 const LoginPage = () => {
-    const { login, user, isAdmin } = useAuth();
+    const { login, user, isAdmin, isDriver } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const toast = useToast();
 
-    const [username, setUsername] = useState('');
+    const [userId, setUserId] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -21,14 +21,14 @@ const LoginPage = () => {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!username.trim() || !password.trim()) {
+        if (!userId.trim() || !password.trim()) {
             toast.warning('Vui lòng nhập đầy đủ thông tin!');
             return;
         }
 
         setLoading(true);
         try {
-            await login(username, password);
+            await login(userId, password);
             toast.success('Đăng nhập thành công!');
         } catch (err: any) {
             toast.error(err.message || 'Sai tên đăng nhập hoặc mật khẩu.');
@@ -43,11 +43,13 @@ const LoginPage = () => {
                 navigate(fromPage, { replace: true });
             } else if (isAdmin) {
                 navigate('/admin/dashboard', { replace: true });
+            } else if (isDriver) {
+                navigate('/driver/dashboard', { replace: true });
             } else {
                 navigate('/', { replace: true });
             }
         }
-    }, [user, navigate, fromPage, isAdmin]);
+    }, [user, navigate, fromPage, isAdmin, isDriver]);
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center py-12 px-4">
@@ -72,17 +74,17 @@ const LoginPage = () => {
                     {/* Form */}
                     <div className="p-8">
                         <form onSubmit={handleLogin} className="space-y-6">
-                            {/* Username Field - NO ICON */}
+                            {/* UserId Field */}
                             <div className="animate-fadeInUp animation-delay-200">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Tên đăng nhập
                                 </label>
                                 <input
                                     type="text"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
+                                    value={userId}
+                                    onChange={(e) => setUserId(e.target.value)}
                                     className="input"
-                                    placeholder="user hoặc admin"
+                                    placeholder="Nhập tên đăng nhập"
                                     disabled={loading}
                                     autoComplete="username"
                                 />

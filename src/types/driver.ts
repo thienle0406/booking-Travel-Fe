@@ -1,9 +1,4 @@
-export interface Driver {
-    id: string;
-    name: string;
-    phone: string;
-    licensePlate?: string;
-    vehicleInfo?: string;
-    status: 'available' | 'busy';
-    companyId: string;
-}
+import type { User } from './user';
+
+// Driver is now a User with role = DRIVER
+export type Driver = User;

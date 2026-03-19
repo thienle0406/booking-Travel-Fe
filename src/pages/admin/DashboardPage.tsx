@@ -78,7 +78,7 @@ const DashboardPage: React.FC = () => {
         <div className="space-y-8">
             {/* Welcome Section */}
             <div className="bg-gradient-to-r from-pink-500 to-orange-500 rounded-2xl p-8 text-white shadow-xl">
-                <h1 className="text-4xl font-bold mb-2">Chào mừng trở lại, {user?.username}! 👋</h1>
+                <h1 className="text-4xl font-bold mb-2">Chào mừng trở lại, {user?.fullName}! 👋</h1>
                 <p className="text-white/90 text-lg">Đây là tổng quan hoạt động của bạn hôm nay</p>
             </div>
 

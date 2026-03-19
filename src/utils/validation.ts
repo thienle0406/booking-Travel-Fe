@@ -56,7 +56,8 @@ export const validateBookingForm = (data: BookingValidation): Record<string, str
 
 // Validate form đăng ký
 export interface RegisterValidation {
-    username: string;
+    userId: string;
+    fullName: string;
     email: string;
     password: string;
     confirmPassword: string;
@@ -65,8 +66,11 @@ export interface RegisterValidation {
 export const validateRegisterForm = (data: RegisterValidation): Record<string, string> => {
     const errors: Record<string, string> = {};
 
-    if (!isValidName(data.username)) {
-        errors.username = 'Tên phải có ít nhất 2 ký tự';
+    if (!data.userId || data.userId.trim().length < 3) {
+        errors.userId = 'Tên đăng nhập phải có ít nhất 3 ký tự';
+    }
+    if (!isValidName(data.fullName)) {
+        errors.fullName = 'Họ tên phải có ít nhất 2 ký tự';
     }
     if (!isValidEmail(data.email)) {
         errors.email = 'Email không hợp lệ';

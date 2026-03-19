@@ -77,7 +77,7 @@ const UserManagementPage: React.FC = () => {
     if (loading) return <div>Đang tải danh sách người dùng...</div>;
 
     const filteredUsers = users.filter((user: User) =>
-        user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -109,12 +109,12 @@ const UserManagementPage: React.FC = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                     {filteredUsers.map((user) => (
                         <tr key={user.id}>
-                            <td className="px-6 py-4">{user.username}</td>
+                            <td className="px-6 py-4">{user.fullName}</td>
                             <td className="px-6 py-4">{user.email}</td>
                             <td className="px-6 py-4">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    ${user.role === 'ADMIN' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
-                                    {user.role}
+                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                    ${user.role === 'ADMIN' ? 'bg-red-100 text-red-800' : user.role === 'DRIVER' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'}`}>
+                                    {user.role === 'DRIVER' ? 'Tài xế' : user.role}
                                 </span>
                             </td>
                             <td className="px-6 py-4">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>
@@ -179,20 +179,48 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onSave, onCancel }) =
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-                <label className="label">Tên người dùng</label>
-                <input type="text" name="username" value={formData.username} onChange={handleChange} className="input" />
+                <label className="label">Họ và Tên</label>
+                <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} className="input" />
             </div>
             <div>
                 <label className="label">Email</label>
                 <input type="email" name="email" value={formData.email} onChange={handleChange} className="input" />
             </div>
             <div>
-                <label className="label">Role</label>
+                <label className="label">Số điện thoại</label>
+                <input type="text" name="phone" value={formData.phone || ''} onChange={handleChange} className="input" />
+            </div>
+            <div>
+                <label className="label">Vai trò</label>
                 <select name="role" value={formData.role} onChange={handleChange} className="input">
-                    <option value="USER">USER</option>
-                    <option value="ADMIN">ADMIN</option>
+                    <option value="USER">Người dùng</option>
+                    <option value="DRIVER">Tài xế</option>
+                    <option value="ADMIN">Quản trị viên</option>
                 </select>
             </div>
+
+            {/* Driver-specific fields */}
+            {formData.role === 'DRIVER' && (
+                <div className="border-t pt-4 mt-4 space-y-4">
+                    <h3 className="font-semibold text-gray-700">Thông tin tài xế</h3>
+                    <div>
+                        <label className="label">Biển số xe</label>
+                        <input type="text" name="licensePlate" value={formData.licensePlate || ''} onChange={handleChange} className="input" placeholder="VD: 51A-123.45" />
+                    </div>
+                    <div>
+                        <label className="label">Thông tin xe</label>
+                        <input type="text" name="vehicleInfo" value={formData.vehicleInfo || ''} onChange={handleChange} className="input" placeholder="VD: Toyota Innova 7 chỗ" />
+                    </div>
+                    <div>
+                        <label className="label">Trạng thái</label>
+                        <select name="driverStatus" value={formData.driverStatus || 'available'} onChange={handleChange} className="input">
+                            <option value="available">Sẵn sàng</option>
+                            <option value="busy">Đang bận</option>
+                        </select>
+                    </div>
+                </div>
+            )}
+
             <div className="flex justify-end space-x-3 mt-6">
                 <button type="button" onClick={onCancel} className="btn-secondary">Hủy</button>
                 <button type="submit" className="btn-primary">Lưu thay đổi</button>

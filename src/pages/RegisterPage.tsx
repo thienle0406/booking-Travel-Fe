@@ -10,7 +10,8 @@ const RegisterPage = () => {
     const toast = useToast();
 
     const [formData, setFormData] = useState({
-        username: '',
+        userId: '',
+        fullName: '',
         email: '',
         password: '',
         confirmPassword: '',
@@ -24,8 +25,12 @@ const RegisterPage = () => {
     };
 
     const validateForm = () => {
-        if (!formData.username.trim()) {
-            toast.warning('Vui lòng nhập tên người dùng!');
+        if (!formData.userId.trim()) {
+            toast.warning('Vui lòng nhập tên đăng nhập!');
+            return false;
+        }
+        if (!formData.fullName.trim()) {
+            toast.warning('Vui lòng nhập họ và tên!');
             return false;
         }
         if (!formData.email.trim() || !formData.email.includes('@')) {
@@ -51,7 +56,8 @@ const RegisterPage = () => {
         setLoading(true);
         try {
             await apiService.auth.register({
-                username: formData.username,
+                userId: formData.userId,
+                fullName: formData.fullName,
                 email: formData.email,
                 password: formData.password,
                 companyId: 'company_1'
@@ -97,15 +103,32 @@ const RegisterPage = () => {
                     {/* Form */}
                     <div className="p-8">
                         <form onSubmit={handleSubmit} className="space-y-5">
-                            {/* Username - NO ICON */}
+                            {/* UserId */}
+                            <div className="animate-fadeInUp animation-delay-200">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Tên đăng nhập
+                                </label>
+                                <input
+                                    type="text"
+                                    name="userId"
+                                    value={formData.userId}
+                                    onChange={handleChange}
+                                    className="input"
+                                    placeholder="Nhập tên đăng nhập"
+                                    disabled={loading}
+                                    autoComplete="username"
+                                />
+                            </div>
+
+                            {/* FullName */}
                             <div className="animate-fadeInUp animation-delay-200">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Họ và Tên
                                 </label>
                                 <input
                                     type="text"
-                                    name="username"
-                                    value={formData.username}
+                                    name="fullName"
+                                    value={formData.fullName}
                                     onChange={handleChange}
                                     className="input"
                                     placeholder="Nguyễn Văn A"

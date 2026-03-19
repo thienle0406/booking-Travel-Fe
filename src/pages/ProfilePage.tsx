@@ -20,16 +20,17 @@ const ProfilePage = () => {
     const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'notifications'>('profile');
     const [saving, setSaving] = useState(false);
     const [avatarPreview, setAvatarPreview] = useState(
-        user?.avatar || `https://ui-avatars.com/api/?name=${user?.username}&size=200&background=ec4899&color=fff`
+        user?.avatar || `https://ui-avatars.com/api/?name=${user?.fullName}&size=200&background=ec4899&color=fff`
     );
 
     // Profile form
     const [profileData, setProfileData] = useState({
-        username: user?.username || '',
+        fullName: user?.fullName || '',
         email: user?.email || '',
         phone: user?.phone || '',
         address: user?.address || '',
-        bio: ''
+        dateOfBirth: user?.dateOfBirth || '',
+        gender: user?.gender || '',
     });
 
     // Password form
@@ -116,7 +117,7 @@ const ProfilePage = () => {
                             <div className="relative group">
                                 <img
                                     src={avatarPreview}
-                                    alt={user?.username}
+                                    alt={user?.fullName}
                                     className="w-24 h-24 rounded-full border-4 border-white shadow-lg"
                                 />
                                 <label className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
@@ -130,7 +131,7 @@ const ProfilePage = () => {
                                 </label>
                             </div>
                             <div>
-                                <h1 className="text-3xl font-bold mb-1">{user?.username}</h1>
+                                <h1 className="text-3xl font-bold mb-1">{user?.fullName}</h1>
                                 <p className="text-white/90">{user?.email}</p>
                                 <span className="inline-block bg-white/20 px-3 py-1 rounded-full text-sm mt-2">
                                     {user?.role === 'ADMIN' ? 'Quản trị viên' : 'Khách hàng'}
@@ -174,8 +175,8 @@ const ProfilePage = () => {
                                             <div className="relative">
                                                 <input
                                                     type="text"
-                                                    value={profileData.username}
-                                                    onChange={(e) => setProfileData({...profileData, username: e.target.value})}
+                                                    value={profileData.fullName}
+                                                    onChange={(e) => setProfileData({...profileData, fullName: e.target.value})}
                                                     className="input pl-10"
                                                 />
                                                 <UserCircleIcon className="icon-input" />

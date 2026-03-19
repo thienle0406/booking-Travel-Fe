@@ -6,7 +6,8 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isAdmin: boolean;
-    login: (username: string, password: string) => Promise<void>;
+    isDriver: boolean;
+    login: (userId: string, password: string) => Promise<void>;
     logout: () => void;
     updateUser: (newUser: User) => void; // Update user in context
     companyId: string | null;
@@ -37,9 +38,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setLoading(false);
     }, []);
 
-    const login = async (username: string, password: string) => {
+    const login = async (userId: string, password: string) => {
         try {
-            const response = await apiService.auth.login(username, password);
+            const response = await apiService.auth.login(userId, password);
             const { token, user: loggedInUser } = response;
 
             localStorage.setItem('authToken', token);
@@ -69,6 +70,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const isAdmin = user?.role === 'ADMIN';
+    const isDriver = user?.role === 'DRIVER';
     const companyId = user?.companyId || null;
 
     if (loading) {
@@ -88,6 +90,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 user,
                 isAuthenticated,
                 isAdmin,
+                isDriver,
                 login,
                 logout,
                 updateUser,

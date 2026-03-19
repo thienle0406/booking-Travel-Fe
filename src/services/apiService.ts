@@ -7,19 +7,19 @@ export const apiService = {
 
     // --- Authentication & User Management ---
     auth: {
-        login: async (username: string, password: string): Promise<{ token: string, user: User }> => {
+        login: async (userId: string, password: string): Promise<{ token: string, user: User }> => {
             console.log('API CALL: POST /auth/login');
-            const response = await apiClient.post('/auth/login', { username, password });
+            const response = await apiClient.post('/auth/login', { userId, password });
             return response.data;
         },
 
-        register: async (data: { username: string, email: string, password: string, companyId: string }) => {
+        register: async (data: { userId: string, fullName: string, email: string, password: string, companyId: string }) => {
             console.log("API CALL: POST /auth/register");
             const response = await apiClient.post('/auth/register', data);
             return response.data;
         },
 
-        updateProfile: async (userId: string, data: { username: string, email: string }): Promise<User> => {
+        updateProfile: async (userId: string, data: Partial<User>): Promise<User> => {
             console.log("API CALL: PUT /users/" + userId + "/profile");
             const response = await apiClient.put(`/users/${userId}/profile`, data);
             return response.data;
@@ -182,23 +182,16 @@ export const apiService = {
         }
     },
 
-    // --- Drivers ---
+    // --- Drivers (Users with role DRIVER) ---
     drivers: {
-        getAll: async (companyId: string) => {
+        getAll: async (companyId: string): Promise<User[]> => {
             const response = await apiClient.post('/drivers/list', { companyId });
             return response.data;
         },
-        create: async (data: { name: string; phone: string; licensePlate?: string; vehicleInfo?: string; status: 'available' | 'busy'; companyId: string }) => {
-            const response = await apiClient.post('/drivers', data);
+        getMyBookings: async () => {
+            const response = await apiClient.get('/drivers/my-bookings');
             return response.data;
         },
-        update: async (id: string, data: { name: string; phone: string; licensePlate?: string; vehicleInfo?: string; status: 'available' | 'busy'; companyId: string }) => {
-            const response = await apiClient.put(`/drivers/${id}`, data);
-            return response.data;
-        },
-        delete: async (id: string) => {
-            await apiClient.delete(`/drivers/${id}`);
-        }
     },
 
     // --- Categories ---
