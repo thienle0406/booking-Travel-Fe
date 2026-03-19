@@ -6,7 +6,9 @@ import {
     SparklesIcon,
     UserGroupIcon,
     GlobeAltIcon,
-    HeartIcon
+    HeartIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon
 } from '@heroicons/react/24/outline';
 import Slider from "react-slick";
 import { apiService } from '../services/apiService';
@@ -15,7 +17,58 @@ import type { TourCategory } from '../types/category';
 import TourCard from '../components/TourCard';
 import { TourListSkeleton } from '../components/Loading';
 
-// ==================== HERO SECTION ====================
+// Data poster tĩnh (sau này sẽ lấy từ API khi có bảng Posters trong DB)
+const POSTERS = [
+    {
+        id: '1',
+        imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
+        title: 'Kham Pha Viet Nam',
+        subtitle: 'Trai nghiem nhung dia diem tuyet voi nhat voi gia ca hop ly',
+        linkTo: '/tours',
+    },
+    {
+        id: '2',
+        imageUrl: 'https://images.unsplash.com/photo-1528127269322-539801943592?w=1920&q=80',
+        title: 'Ha Long Bay',
+        subtitle: 'Di san thien nhien the gioi - Ky quan hang dau chau A',
+        linkTo: '/tours?destination=Ha+Long',
+    },
+    {
+        id: '3',
+        imageUrl: 'https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=1920&q=80',
+        title: 'Da Nang - Hoi An',
+        subtitle: 'Thanh pho dang song nhat Viet Nam cung pho co di san',
+        linkTo: '/tours?destination=Da+Nang',
+    },
+    {
+        id: '4',
+        imageUrl: 'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1920&q=80',
+        title: 'Phu Quoc Paradise',
+        subtitle: 'Dao ngoc - Thien duong nghi duong nhiet doi',
+        linkTo: '/tours?destination=Phu+Quoc',
+    },
+];
+
+// Custom Arrow components cho Slider
+const PrevArrow = ({ onClick }: { onClick?: () => void }) => (
+    <button
+        onClick={onClick}
+        className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/20 backdrop-blur-md hover:bg-white/40 rounded-full flex items-center justify-center transition-all duration-300 group"
+    >
+        <ChevronLeftIcon className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
+    </button>
+);
+
+const NextArrow = ({ onClick }: { onClick?: () => void }) => (
+    <button
+        onClick={onClick}
+        className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/20 backdrop-blur-md hover:bg-white/40 rounded-full flex items-center justify-center transition-all duration-300 group"
+    >
+        <ChevronRightIcon className="h-6 w-6 text-white group-hover:scale-110 transition-transform" />
+    </button>
+);
+
+// ==================== HERO SECTION (Poster/Banner Slider) ====================
 const Hero = () => {
     const navigate = useNavigate();
     const [destination, setDestination] = useState('');
@@ -29,79 +82,113 @@ const Hero = () => {
         }
     };
 
-    return (
-        <div className="relative min-h-[90vh] flex items-center justify-center overflow-hidden">
-            {/* Background Image with Parallax Effect */}
-            <div
-                className="absolute inset-0 bg-cover bg-center bg-fixed"
-                style={{
-                    backgroundImage: "url('https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80')"
-                }}
-            >
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 via-purple-900/70 to-pink-900/80" />
+    const bannerSettings = {
+        dots: true,
+        infinite: true,
+        speed: 800,
+        slidesToShow: 1,
+        slidesToScroll: 1,
+        autoplay: true,
+        autoplaySpeed: 5000,
+        fade: true,
+        cssEase: 'ease-in-out',
+        pauseOnHover: false,
+        prevArrow: <PrevArrow />,
+        nextArrow: <NextArrow />,
+    };
 
-                {/* Animated Shapes */}
-                <div className="absolute top-20 left-10 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
-                <div className="absolute top-40 right-10 w-72 h-72 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
-                <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000" />
+    return (
+        <div className="relative min-h-[90vh] overflow-hidden">
+            {/* Poster/Banner Slider */}
+            <div className="absolute inset-0">
+                <Slider {...bannerSettings}>
+                    {POSTERS.map((poster) => (
+                        <div key={poster.id}>
+                            <div className="relative min-h-[90vh]">
+                                {/* Background Image */}
+                                <div
+                                    className="absolute inset-0 bg-cover bg-center bg-fixed"
+                                    style={{ backgroundImage: `url('${poster.imageUrl}')` }}
+                                />
+                                {/* Gradient Overlay */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 via-purple-900/60 to-pink-900/70" />
+
+                                {/* Poster Content (tieu de + mo ta + nut Dat ngay) */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="text-center px-4 max-w-4xl mx-auto">
+                                        <h2 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-4 animate-fadeInUp leading-tight">
+                                            {poster.title}
+                                        </h2>
+                                        <p className="text-lg md:text-2xl text-white/90 mb-8 animate-fadeInUp animation-delay-200">
+                                            {poster.subtitle}
+                                        </p>
+                                        <Link
+                                            to={poster.linkTo}
+                                            className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 animate-fadeInUp animation-delay-400"
+                                        >
+                                            Dat ngay
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                            </svg>
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </Slider>
             </div>
 
-            {/* Content */}
-            <div className="relative z-10 container mx-auto px-4 text-center">
+            {/* Search Bar + Stats overlay */}
+            <div className="relative z-10 min-h-[90vh] flex flex-col items-center justify-center pointer-events-none">
                 {/* Badge */}
-                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 mb-6 animate-fadeInDown">
+                <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-2 mb-6 animate-fadeInDown pointer-events-auto">
                     <SparklesIcon className="h-5 w-5 text-yellow-300" />
-                    <span className="text-white font-medium">Khám phá Việt Nam cùng chúng tôi</span>
+                    <span className="text-white font-medium">Kham pha Viet Nam cung chung toi</span>
                 </div>
 
-                {/* Main Heading */}
-                <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 animate-fadeInUp leading-tight">
-                    Hành Trình <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-yellow-400">Khám Phá</span>
-                    <br />
-                    Bắt Đầu Từ Đây
-                </h1>
+                {/* Spacer cho poster content */}
+                <div className="flex-1" />
 
-                {/* Subtitle */}
-                <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-3xl mx-auto animate-fadeInUp animation-delay-200">
-                    Trải nghiệm những địa điểm tuyệt vời nhất Việt Nam với giá cả hợp lý và dịch vụ tận tâm
-                </p>
-
-                {/* Search Bar with Glassmorphism */}
-                <form onSubmit={handleSearch} className="max-w-3xl mx-auto animate-fadeInUp animation-delay-400">
-                    <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2 shadow-2xl">
-                        <div className="flex items-center gap-3">
-                            <div className="flex-1 flex items-center bg-white rounded-xl px-6 py-4 shadow-lg">
-                                <MapPinIcon className="h-6 w-6 text-gray-400 mr-3" />
-                                <input
-                                    type="text"
-                                    placeholder="Bạn muốn đi đâu? (VD: Hạ Long, Đà Nẵng, Phú Quốc...)"
-                                    className="w-full text-lg border-none focus:outline-none focus:ring-0 p-0"
-                                    value={destination}
-                                    onChange={(e) => setDestination(e.target.value)}
-                                />
+                {/* Search Bar */}
+                <div className="w-full max-w-3xl mx-auto px-4 mb-8 pointer-events-auto">
+                    <form onSubmit={handleSearch}>
+                        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-2 shadow-2xl">
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <div className="flex-1 flex items-center bg-white rounded-xl px-4 md:px-6 py-3 md:py-4 shadow-lg">
+                                    <MapPinIcon className="h-5 w-5 md:h-6 md:w-6 text-gray-400 mr-2 md:mr-3 flex-shrink-0" />
+                                    <input
+                                        type="text"
+                                        placeholder="Ban muon di dau? (Ha Long, Da Nang...)"
+                                        className="w-full text-base md:text-lg border-none focus:outline-none focus:ring-0 p-0"
+                                        value={destination}
+                                        onChange={(e) => setDestination(e.target.value)}
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white px-4 md:px-8 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2 flex-shrink-0"
+                                >
+                                    <MagnifyingGlassIcon className="h-5 w-5 md:h-6 md:w-6" />
+                                    <span className="hidden sm:inline">Tim Kiem</span>
+                                </button>
                             </div>
-                            <button
-                                type="submit"
-                                className="bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2"
-                            >
-                                <MagnifyingGlassIcon className="h-6 w-6" />
-                                Tìm Kiếm
-                            </button>
                         </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
 
                 {/* Stats */}
-                <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto animate-fadeInUp animation-delay-600">
-                    <StatCard icon={GlobeAltIcon} value="50+" label="Điểm đến" />
-                    <StatCard icon={UserGroupIcon} value="10K+" label="Khách hàng" />
-                    <StatCard icon={HeartIcon} value="4.9/5" label="Đánh giá" />
+                <div className="w-full max-w-4xl mx-auto px-4 pb-12 pointer-events-auto">
+                    <div className="grid grid-cols-3 gap-4 md:gap-8">
+                        <StatCard icon={GlobeAltIcon} value="50+" label="Diem den" />
+                        <StatCard icon={UserGroupIcon} value="10K+" label="Khach hang" />
+                        <StatCard icon={HeartIcon} value="4.9/5" label="Danh gia" />
+                    </div>
                 </div>
             </div>
 
             {/* Scroll Indicator */}
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce z-10">
                 <div className="w-6 h-10 border-2 border-white rounded-full flex items-start justify-center p-2">
                     <div className="w-1 h-3 bg-white rounded-full animate-pulse" />
                 </div>
@@ -112,10 +199,10 @@ const Hero = () => {
 
 // Stats Card Component
 const StatCard = ({ icon: Icon, value, label }: { icon: any, value: string, label: string }) => (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 hover:bg-white/20 transition-all duration-300 transform hover:scale-105">
-        <Icon className="h-8 w-8 text-yellow-400 mx-auto mb-3" />
-        <div className="text-3xl font-bold text-white mb-1">{value}</div>
-        <div className="text-white/80">{label}</div>
+    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 md:p-6 hover:bg-white/20 transition-all duration-300 transform hover:scale-105 text-center">
+        <Icon className="h-6 w-6 md:h-8 md:w-8 text-yellow-400 mx-auto mb-2 md:mb-3" />
+        <div className="text-2xl md:text-3xl font-bold text-white mb-1">{value}</div>
+        <div className="text-sm md:text-base text-white/80">{label}</div>
     </div>
 );
 

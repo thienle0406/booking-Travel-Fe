@@ -15,6 +15,7 @@ import {
     Squares2X2Icon // <-- Icon Categories
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from '../components/NotificationBell';
 
 // === Component Sidebar (Đã được nâng cấp) ===
 // Chúng ta thêm prop "isOpen"
@@ -112,7 +113,14 @@ const AdminLayout: React.FC = () => {
                         {isOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
                     </button>
 
-                    {/* (Bạn có thể thêm các thứ khác vào header ở đây, ví dụ: chuông thông báo) */}
+                    {/* Notification Bell + User info */}
+                    <div className="flex items-center gap-4">
+                        <NotificationBell />
+                        <Link to="/" className="text-sm text-gray-500 hover:text-primary transition-colors flex items-center gap-1">
+                            <HomeIcon className="h-4 w-4" />
+                            Trang chu
+                        </Link>
+                    </div>
                 </header>
 
                 {/* 3. Trang con (Dashboard, Booking...) */}

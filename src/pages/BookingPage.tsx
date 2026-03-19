@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/apiService';
 import { useToast } from '../components/Toast';
 import type { TourDeparture, TourTemplate } from '../types/tour';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, formatDate } from '../utils/format';
 import {
     UserIcon,
     EnvelopeIcon,
@@ -71,17 +71,18 @@ const BookingPage = () => {
 
         if (!tourDetails || !companyId) return;
 
-        // Validation
-        if (!formData.customerName.trim()) {
-            toast.warning('Vui lòng nhập họ tên');
+        // Validation (dung helper)
+        const { isValidName, isValidEmail, isValidPhoneVN } = await import('../utils/validation');
+        if (!isValidName(formData.customerName)) {
+            toast.warning('Ho ten phai co it nhat 2 ky tu');
             return;
         }
-        if (!formData.customerEmail.includes('@')) {
-            toast.warning('Email không hợp lệ');
+        if (!isValidEmail(formData.customerEmail)) {
+            toast.warning('Email khong hop le');
             return;
         }
-        if (!formData.customerPhone.trim()) {
-            toast.warning('Vui lòng nhập số điện thoại');
+        if (!isValidPhoneVN(formData.customerPhone)) {
+            toast.warning('So dien thoai phai la 10 so, bat dau bang 0');
             return;
         }
 
@@ -320,7 +321,7 @@ const BookingPage = () => {
                                 </div>
                                 <div className="flex items-center gap-2 text-gray-600 text-sm">
                                     <CalendarDaysIcon className="h-4 w-4 text-primary" />
-                                    <span>Khởi hành: {departure.startDate}</span>
+                                    <span>Khoi hanh: {formatDate(departure.startDate)}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-gray-600 text-sm">
                                     <UsersIcon className="h-4 w-4 text-primary" />

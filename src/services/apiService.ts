@@ -160,7 +160,7 @@ export const apiService = {
             return response.data;
         },
 
-        updateStatus: async (id: string, status: 'Confirmed' | 'Cancelled' | 'InProcess') => {
+        updateStatus: async (id: string, status: 'Confirmed' | 'Assigned' | 'InProgress' | 'Completed' | 'Cancelled' | 'InProcess') => {
             const response = await apiClient.put(`/bookings/${id}/status`, { status });
             return response.data;
         },
@@ -188,11 +188,11 @@ export const apiService = {
             const response = await apiClient.post('/drivers/list', { companyId });
             return response.data;
         },
-        create: async (data: { name: string; phone: string; status: 'available' | 'busy'; companyId: string }) => {
+        create: async (data: { name: string; phone: string; licensePlate?: string; vehicleInfo?: string; status: 'available' | 'busy'; companyId: string }) => {
             const response = await apiClient.post('/drivers', data);
             return response.data;
         },
-        update: async (id: string, data: { name: string; phone: string; status: 'available' | 'busy'; companyId: string }) => {
+        update: async (id: string, data: { name: string; phone: string; licensePlate?: string; vehicleInfo?: string; status: 'available' | 'busy'; companyId: string }) => {
             const response = await apiClient.put(`/drivers/${id}`, data);
             return response.data;
         },

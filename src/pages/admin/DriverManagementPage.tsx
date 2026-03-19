@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../../components/Modal';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { ConfirmModal } from '../../components/Modal-Enhanced';
+import { DriverStatusBadge } from '../../components/StatusBadge';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/apiService';
 import type { Driver } from '../../types/driver';
 import type { AdminBooking } from '../../types/booking';
-import { formatCurrency } from '../../utils/format';
+import { formatCurrency, formatPhoneVN, formatLicensePlate } from '../../utils/format';
+import { isValidPhoneVN, isValidLicensePlate } from '../../utils/validation';
 
 const DriverManagementPage: React.FC = () => {
     const { companyId } = useAuth();
@@ -14,11 +16,9 @@ const DriverManagementPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentDriver, setCurrentDriver] = useState<Driver | null>(null);
 
-    // Popup xác nhận xóa tài xế
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-    // Modal xem doanh thu theo tài xế
     const [revenueDriver, setRevenueDriver] = useState<Driver | null>(null);
     const [driverBookings, setDriverBookings] = useState<AdminBooking[]>([]);
     const [isRevenueModalOpen, setIsRevenueModalOpen] = useState(false);
@@ -30,14 +30,14 @@ const DriverManagementPage: React.FC = () => {
                 const data = await apiService.drivers.getAll(companyId);
                 setDrivers(data);
             } catch (err) {
-                console.error('Không thể tải danh sách tài xế', err);
+                console.error('Khong the tai danh sach tai xe', err);
             }
         };
         fetchDrivers();
     }, [companyId]);
 
     const handleAddDriver = () => {
-        setCurrentDriver(null); // Để trống form cho driver mới
+        setCurrentDriver(null);
         setIsModalOpen(true);
     };
 
@@ -49,25 +49,23 @@ const DriverManagementPage: React.FC = () => {
     const handleSaveDriver = async (driverData: Driver) => {
         if (!companyId) return;
         try {
+            const body = {
+                name: driverData.name,
+                phone: driverData.phone,
+                licensePlate: driverData.licensePlate || '',
+                vehicleInfo: driverData.vehicleInfo || '',
+                status: driverData.status,
+                companyId,
+            };
             if (driverData.id) {
-                const updated = await apiService.drivers.update(driverData.id, {
-                    name: driverData.name,
-                    phone: driverData.phone,
-                    status: driverData.status,
-                    companyId
-                });
+                const updated = await apiService.drivers.update(driverData.id, body);
                 setDrivers(prev => prev.map(d => d.id === updated.id ? updated : d));
             } else {
-                const created = await apiService.drivers.create({
-                    name: driverData.name,
-                    phone: driverData.phone,
-                    status: driverData.status,
-                    companyId
-                });
+                const created = await apiService.drivers.create(body);
                 setDrivers(prev => [...prev, created]);
             }
         } catch (err) {
-            console.error('Không thể lưu tài xế', err);
+            console.error('Khong the luu tai xe', err);
         } finally {
             setIsModalOpen(false);
             setCurrentDriver(null);
@@ -85,7 +83,7 @@ const DriverManagementPage: React.FC = () => {
             await apiService.drivers.delete(confirmDeleteId);
             setDrivers(prev => prev.filter(d => d.id !== confirmDeleteId));
         } catch (err) {
-            console.error('Không thể xóa tài xế', err);
+            console.error('Khong the xoa tai xe', err);
         } finally {
             setConfirmDeleteId(null);
         }
@@ -98,41 +96,42 @@ const DriverManagementPage: React.FC = () => {
             setRevenueDriver(driver);
             setIsRevenueModalOpen(true);
         } catch (err) {
-            console.error('Không thể tải doanh thu theo tài xế', err);
+            console.error('Khong the tai doanh thu theo tai xe', err);
         }
     };
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-6">Quản lý Tài xế</h1>
+            <h1 className="text-3xl font-bold mb-6">Quan ly Tai xe</h1>
             <div className="flex justify-end mb-4">
                 <button
                     onClick={handleAddDriver}
                     className="bg-primary text-white px-4 py-2 rounded-md flex items-center hover:bg-blue-700"
                 >
-                    <PlusIcon className="h-5 w-5 mr-2" /> Thêm Tài xế mới
+                    <PlusIcon className="h-5 w-5 mr-2" /> Them Tai xe moi
                 </button>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow">
+            <div className="bg-white p-6 rounded-lg shadow overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                     <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tên tài xế</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Số điện thoại</th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái</th>
-                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hành động</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ten tai xe</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">So dien thoai</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bien so xe</th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trang thai</th>
+                        <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Hanh dong</th>
                     </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
                     {drivers.map((driver) => (
-                        <tr key={driver.id}>
-                            <td className="px-6 py-4 whitespace-nowrap">{driver.name}</td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{driver.phone}</td>
+                        <tr key={driver.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-6 py-4 whitespace-nowrap font-medium">{driver.name}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{formatPhoneVN(driver.phone)}</td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">
+                                {driver.licensePlate ? formatLicensePlate(driver.licensePlate) : '-'}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                    ${driver.status === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                    {driver.status === 'available' ? 'Rảnh' : 'Đang bận'}
-                                </span>
+                                <DriverStatusBadge status={driver.status} />
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-3">
                                 <button
@@ -142,10 +141,10 @@ const DriverManagementPage: React.FC = () => {
                                     Xem doanh thu
                                 </button>
                                 <button onClick={() => handleEditDriver(driver)} className="text-primary hover:text-blue-900">
-                                    Sửa
+                                    Sua
                                 </button>
                                 <button onClick={() => handleDeleteDriver(driver.id)} className="text-red-600 hover:text-red-900">
-                                    Xóa
+                                    Xoa
                                 </button>
                             </td>
                         </tr>
@@ -154,8 +153,7 @@ const DriverManagementPage: React.FC = () => {
                 </table>
             </div>
 
-            {/* Modal thêm/chỉnh sửa Tài xế */}
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={currentDriver ? "Chỉnh sửa Tài xế" : "Thêm Tài xế mới"}>
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={currentDriver ? "Chinh sua Tai xe" : "Them Tai xe moi"}>
                 <EditDriverForm
                     driver={currentDriver}
                     onSave={handleSaveDriver}
@@ -163,23 +161,21 @@ const DriverManagementPage: React.FC = () => {
                 />
             </Modal>
 
-            {/* Popup xác nhận xóa tài xế */}
             <ConfirmModal
                 isOpen={isConfirmOpen}
                 onClose={() => setIsConfirmOpen(false)}
                 onConfirm={handleConfirmDelete}
-                title="Xóa tài xế?"
-                message="Bạn có chắc chắn muốn xóa tài xế này?"
-                confirmText="Đồng ý"
-                cancelText="Hủy"
+                title="Xoa tai xe?"
+                message="Ban co chac chan muon xoa tai xe nay?"
+                confirmText="Dong y"
+                cancelText="Huy"
                 type="danger"
             />
 
-            {/* Modal xem doanh thu theo tài xế */}
             <Modal
                 isOpen={isRevenueModalOpen}
                 onClose={() => setIsRevenueModalOpen(false)}
-                title={revenueDriver ? `Doanh thu từ tour của ${revenueDriver.name}` : 'Doanh thu theo tài xế'}
+                title={revenueDriver ? `Doanh thu tu tour cua ${revenueDriver.name}` : 'Doanh thu theo tai xe'}
                 size="lg"
             >
                 <DriverRevenueContent driver={revenueDriver} bookings={driverBookings} />
@@ -190,7 +186,7 @@ const DriverManagementPage: React.FC = () => {
 
 export default DriverManagementPage;
 
-// Component Form chỉnh sửa/thêm Tài xế
+// Form them/sua Tai xe
 interface EditDriverFormProps {
     driver: Driver | null;
     onSave: (driver: Driver) => void;
@@ -198,9 +194,14 @@ interface EditDriverFormProps {
 }
 
 const EditDriverForm: React.FC<EditDriverFormProps> = ({ driver, onSave, onCancel }) => {
-    const [formData, setFormData] = useState<Omit<Driver, 'id'>>(driver || {
-        name: '', phone: '', status: 'available', companyId: ''
-    } as Omit<Driver, 'id'>);
+    const [formData, setFormData] = useState({
+        name: driver?.name || '',
+        phone: driver?.phone || '',
+        licensePlate: driver?.licensePlate || '',
+        vehicleInfo: driver?.vehicleInfo || '',
+        status: driver?.status || 'available' as const,
+        companyId: driver?.companyId || '',
+    });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -212,8 +213,11 @@ const EditDriverForm: React.FC<EditDriverFormProps> = ({ driver, onSave, onCance
 
     const validateForm = () => {
         const newErrors: Record<string, string> = {};
-        if (!formData.name.trim()) newErrors.name = 'Tên không được trống.';
-        if (!formData.phone.trim() || !/^\d{10,11}$/.test(formData.phone)) newErrors.phone = 'SĐT không hợp lệ.';
+        if (!formData.name.trim()) newErrors.name = 'Ten khong duoc trong.';
+        if (!isValidPhoneVN(formData.phone)) newErrors.phone = 'SDT phai la 10 so, bat dau bang 0.';
+        if (formData.licensePlate && !isValidLicensePlate(formData.licensePlate)) {
+            newErrors.licensePlate = 'Bien so khong hop le (VD: 51G12345).';
+        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -221,64 +225,55 @@ const EditDriverForm: React.FC<EditDriverFormProps> = ({ driver, onSave, onCance
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (validateForm()) {
-            onSave({ ...formData, id: driver?.id || '' } as Driver); // Cast về Driver
-        } else {
-            alert('Vui lòng kiểm tra lại thông tin tài xế.');
+            onSave({ ...formData, id: driver?.id || '', status: formData.status as 'available' | 'busy' });
         }
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-                <label className="block text-sm font-medium text-gray-700">Tên tài xế</label>
-                <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full border ${errors.name ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm p-2`}
-                />
+                <label className="label">Ten tai xe *</label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange}
+                    className={`input ${errors.name ? 'border-red-500' : ''}`} placeholder="Nguyen Van A" />
                 {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
             </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">Số điện thoại</label>
-                <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className={`mt-1 block w-full border ${errors.phone ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm p-2`}
-                />
+                <label className="label">So dien thoai *</label>
+                <input type="tel" name="phone" value={formData.phone} onChange={handleChange}
+                    className={`input ${errors.phone ? 'border-red-500' : ''}`} placeholder="0912345678" />
                 {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="label">Bien so xe</label>
+                    <input type="text" name="licensePlate" value={formData.licensePlate} onChange={handleChange}
+                        className={`input font-mono ${errors.licensePlate ? 'border-red-500' : ''}`} placeholder="51G12345" />
+                    {errors.licensePlate && <p className="text-red-500 text-xs mt-1">{errors.licensePlate}</p>}
+                </div>
+                <div>
+                    <label className="label">Thong tin xe</label>
+                    <input type="text" name="vehicleInfo" value={formData.vehicleInfo} onChange={handleChange}
+                        className="input" placeholder="Toyota Innova 7 cho" />
+                </div>
+            </div>
             <div>
-                <label className="block text-sm font-medium text-gray-700">Trạng thái</label>
-                <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
-                >
-                    <option value="available">Rảnh</option>
-                    <option value="busy">Bận</option>
+                <label className="label">Trang thai</label>
+                <select name="status" value={formData.status} onChange={handleChange} className="input">
+                    <option value="available">Ranh</option>
+                    <option value="busy">Ban</option>
                 </select>
             </div>
-            <div className="flex justify-end space-x-3 mt-6">
-                <button type="button" onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300">
-                    Hủy
-                </button>
-                <button type="submit" className="px-4 py-2 text-sm font-medium text-white bg-primary rounded-md hover:bg-blue-700">
-                    Lưu thay đổi
-                </button>
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
+                <button type="button" onClick={onCancel} className="btn-secondary">Huy</button>
+                <button type="submit" className="btn-primary">Luu thay doi</button>
             </div>
         </form>
     );
 };
 
-// Hiển thị doanh thu theo tài xế
+// Doanh thu theo tai xe
 const DriverRevenueContent: React.FC<{ driver: Driver | null; bookings: AdminBooking[] }> = ({ driver, bookings }) => {
     if (!driver) return null;
-
     const totalRevenue = bookings.reduce((sum, b) => sum + b.totalPrice, 0);
 
     return (
@@ -289,23 +284,22 @@ const DriverRevenueContent: React.FC<{ driver: Driver | null; bookings: AdminBoo
                     <p className="text-sm text-gray-600">{driver.phone}</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-sm text-gray-500">Tổng doanh thu (đã xác nhận)</p>
+                    <p className="text-sm text-gray-500">Tong doanh thu (da xac nhan)</p>
                     <p className="text-2xl font-bold text-primary">{formatCurrency(totalRevenue)}</p>
                 </div>
             </div>
-
             <div className="border-t pt-4">
                 {bookings.length === 0 ? (
-                    <p className="text-gray-500 text-sm">Chưa có booking nào đã xác nhận cho tài xế này.</p>
+                    <p className="text-gray-500 text-sm">Chua co booking nao da xac nhan cho tai xe nay.</p>
                 ) : (
                     <div className="max-h-80 overflow-y-auto">
                         <table className="min-w-full divide-y divide-gray-200 text-sm">
                             <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-4 py-2 text-left">Mã Booking</th>
-                                <th className="px-4 py-2 text-left">Khách hàng</th>
-                                <th className="px-4 py-2 text-left">Ngày đặt</th>
-                                <th className="px-4 py-2 text-right">Số tiền</th>
+                                <th className="px-4 py-2 text-left">Ma Booking</th>
+                                <th className="px-4 py-2 text-left">Khach hang</th>
+                                <th className="px-4 py-2 text-left">Ngay dat</th>
+                                <th className="px-4 py-2 text-right">So tien</th>
                             </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
@@ -314,9 +308,7 @@ const DriverRevenueContent: React.FC<{ driver: Driver | null; bookings: AdminBoo
                                     <td className="px-4 py-2">{b.id}</td>
                                     <td className="px-4 py-2">{b.customerName}</td>
                                     <td className="px-4 py-2">{b.bookingDate}</td>
-                                    <td className="px-4 py-2 text-right font-medium">
-                                        {formatCurrency(b.totalPrice)}
-                                    </td>
+                                    <td className="px-4 py-2 text-right font-medium">{formatCurrency(b.totalPrice)}</td>
                                 </tr>
                             ))}
                             </tbody>
@@ -326,4 +318,4 @@ const DriverRevenueContent: React.FC<{ driver: Driver | null; bookings: AdminBoo
             </div>
         </div>
     );
-}
+};

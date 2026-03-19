@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Modal from '../../components/Modal';
-import { formatCurrency } from '../../utils/format';
+import { formatCurrency, formatDate, formatPhoneVN } from '../../utils/format';
 import { useAuth } from '../../contexts/AuthContext';
 import { apiService } from '../../services/apiService';
 import { ConfirmModal } from '../../components/Modal-Enhanced';
+import StatusBadge from '../../components/StatusBadge';
+import SearchableComboBox from '../../components/SearchableComboBox';
+import type { ComboBoxOption } from '../../components/SearchableComboBox';
 
-import type { AdminBooking } from '../../types/booking';
+import type { AdminBooking, BookingStatus } from '../../types/booking';
+import { BOOKING_STATUS_LABELS, BOOKING_NEXT_STATUSES } from '../../types/booking';
 import type { Driver } from '../../types/driver';
-import type { TourDeparture } from '../../types/tour';
-import type { TourTemplate } from '../../types/tour';
-import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline'; // Thêm Icon Xóa
+import type { TourDeparture, TourTemplate } from '../../types/tour';
+import { PencilIcon, TrashIcon, FunnelIcon } from '@heroicons/react/24/outline';
 
 const BookingManagementPage: React.FC = () => {
     const { companyId } = useAuth();
@@ -25,6 +28,9 @@ const BookingManagementPage: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentBooking, setCurrentBooking] = useState<AdminBooking | null>(null);
 
+    // Filter theo trạng thái
+    const [filterStatus, setFilterStatus] = useState<BookingStatus | 'all'>('all');
+
     // Popup xác nhận dùng chung (Yes/No)
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -33,8 +39,6 @@ const BookingManagementPage: React.FC = () => {
         if (!companyId) return;
         setLoading(true);
         try {
-            // Gọi song song 4 API
-            // API Thật: POST /api/v1/bookings/list
             const [bookingData, departureData, templateData, driverData] = await Promise.all([
                 apiService.bookings.getAll(companyId),
                 apiService.tourDepartures.getAll(companyId),
@@ -49,238 +53,329 @@ const BookingManagementPage: React.FC = () => {
         finally { setLoading(false); }
     };
 
-    useEffect(() => {
-        fetchData();
-    }, [companyId]);
+    useEffect(() => { fetchData(); }, [companyId]);
 
-    // === Hàm Helpers (giữ nguyên) ===
+    // === Hàm Helpers ===
     const getTourNameByDepartureId = (departureId: string) => {
         const dep = departures.find(d => d.id === departureId);
         return templates.find(t => t.id === dep?.tourTemplateId)?.name || '...';
     };
+    const getDepartureByBooking = (booking: AdminBooking) => {
+        return departures.find(d => d.id === booking.tourDepartureId);
+    };
     const getDriverName = (driverId: string | null | undefined) => {
-        if (!driverId) return 'Chưa gán';
+        if (!driverId) return 'Chua gan';
         return drivers.find(d => d.id === driverId)?.name || '...';
     };
     const availableDrivers = drivers.filter(d => d.status === 'available');
-    // ===================================
+
+    // Filtered bookings
+    const filteredBookings = filterStatus === 'all'
+        ? bookings
+        : bookings.filter(b => b.status === filterStatus);
+
+    // Thống kê nhanh
+    const statusCounts = bookings.reduce((acc, b) => {
+        acc[b.status] = (acc[b.status] || 0) + 1;
+        return acc;
+    }, {} as Record<string, number>);
 
     const handleOpenModal = (booking: AdminBooking) => {
         setCurrentBooking(booking);
         setIsModalOpen(true);
     };
 
-    const handleSaveBooking = async (updatedData: { status: AdminBooking['status'], driverId: string | null }) => {
+    const handleSaveBooking = async (updatedData: { status: BookingStatus, driverId: string | null }) => {
         if (!currentBooking) return;
 
-        if (updatedData.status !== currentBooking.status) {
-
-            // Trạng thái 'Pending' chỉ là chờ duyệt, BE chỉ xử lý khi khác Pending
-            if (updatedData.status !== 'Pending') {
-                try {
-                    // Tới đây, updatedData.status có thể là 'Confirmed' | 'Cancelled' | 'InProcess'
-                    await apiService.bookings.updateStatus(currentBooking.id, updatedData.status);
-                } catch (err) { alert('Lỗi khi cập nhật trạng thái'); }
+        try {
+            // 1. Cập nhật trạng thái nếu thay đổi
+            if (updatedData.status !== currentBooking.status && updatedData.status !== 'Pending') {
+                await apiService.bookings.updateStatus(currentBooking.id, updatedData.status as any);
             }
-            // GHI CHÚ: Nếu Admin chọn lại 'Pending', ta bỏ qua vì BE không xử lý
-        }
 
-        // 2. Gán tài xế
-        if (updatedData.driverId !== currentBooking.driverId) {
-            try {
-                // API Thật: PUT /api/v1/bookings/:id/assign-driver
+            // 2. Gán tài xế nếu thay đổi
+            if (updatedData.driverId !== currentBooking.driverId) {
                 await apiService.bookings.assignDriver(currentBooking.id, updatedData.driverId);
-            } catch (err) { alert('Lỗi khi gán tài xế'); }
-        }
+            }
 
-        // 3. Tải lại data
-        await fetchData();
+            // 3. Tải lại data
+            await fetchData();
+        } catch (err) {
+            console.error('Loi cap nhat booking', err);
+        }
         setIsModalOpen(false);
     };
 
-    // Mở popup xác nhận xóa
     const handleDeleteBooking = (bookingId: string) => {
         setConfirmDeleteId(bookingId);
         setIsConfirmOpen(true);
     };
 
-    // Thực hiện xóa sau khi user chọn "Đồng ý"
     const handleConfirmDelete = async () => {
         if (!confirmDeleteId) return;
         try {
             await apiService.bookings.delete(confirmDeleteId);
             await fetchData();
         } catch (err) {
-            // Có thể dùng Toast ở đây nếu muốn
-            console.error('Không thể xóa booking', err);
+            console.error('Khong the xoa booking', err);
         } finally {
             setConfirmDeleteId(null);
         }
     };
 
-    if (loading) return <div>Đang tải danh sách booking...</div>;
+    if (loading) return <div className="p-8 text-center">Dang tai danh sach booking...</div>;
 
     return (
         <div>
-            <h1 className="text-3xl font-bold mb-6">Quản lý Booking</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-3xl font-bold">Quan ly Booking</h1>
+                <span className="text-sm text-gray-500">{bookings.length} booking</span>
+            </div>
+
+            {/* Status Filter Tabs */}
+            <div className="flex flex-wrap gap-2 mb-6">
+                <button
+                    onClick={() => setFilterStatus('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        filterStatus === 'all'
+                            ? 'bg-gradient-to-r from-pink-500 to-orange-500 text-white shadow-md'
+                            : 'bg-white text-gray-600 hover:bg-gray-100 border'
+                    }`}
+                >
+                    <FunnelIcon className="h-4 w-4 inline mr-1" />
+                    Tat ca ({bookings.length})
+                </button>
+                {(['Pending', 'Confirmed', 'Assigned', 'InProgress', 'Completed', 'Cancelled'] as BookingStatus[]).map(s => (
+                    <button
+                        key={s}
+                        onClick={() => setFilterStatus(s)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                            filterStatus === s
+                                ? 'bg-gradient-to-r from-pink-500 to-orange-500 text-white shadow-md'
+                                : 'bg-white text-gray-600 hover:bg-gray-100 border'
+                        }`}
+                    >
+                        {BOOKING_STATUS_LABELS[s]} ({statusCounts[s] || 0})
+                    </button>
+                ))}
+            </div>
+
+            {/* Booking Table */}
             <div className="bg-white p-6 rounded-lg shadow overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                     <tr>
-                        <th className="px-6 py-3 text-left">Mã Booking</th>
-                        <th className="px-6 py-3 text-left">Tên Tour</th>
-                        <th className="px-6 py-3 text-left">Khách hàng</th>
-                        <th className="px-6 py-3 text-left">Trạng thái</th>
-                        <th className="px-6 py-3 text-left">Tài xế</th>
-                        <th className="px-6 py-3 text-right">Hành động</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ma</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ten Tour</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Khach hang</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">SDT</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ngay dat</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tong tien</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trang thai</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tai xe</th>
+                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Hanh dong</th>
                     </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                    {bookings.map((booking) => (
-                        <tr key={booking.id}>
-                            <td className="px-6 py-4">{booking.id}</td>
-                            <td className="px-6 py-4">{getTourNameByDepartureId(booking.tourDepartureId)}</td>
-                            <td className="px-6 py-4">{booking.customerName}</td>
-                            <td className="px-6 py-4">
-                                <span
-                                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                                        booking.status === 'Confirmed'
-                                            ? 'bg-green-100 text-green-800'
-                                            : booking.status === 'Pending'
-                                                ? 'bg-yellow-100 text-yellow-800'
-                                                : booking.status === 'InProcess'
-                                                    ? 'bg-blue-100 text-blue-800'
-                                                    : 'bg-red-100 text-red-800'
-                                    }`}
-                                >
-                                    {booking.status === 'Pending'
-                                        ? 'Chờ duyệt'
-                                        : booking.status === 'Confirmed'
-                                            ? 'Đã duyệt'
-                                            : booking.status === 'InProcess'
-                                                ? 'Đang thực hiện'
-                                                : 'Đã hủy'}
-                                </span>
+                    {filteredBookings.map((booking) => (
+                        <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
+                            <td className="px-4 py-4 text-sm font-mono text-gray-500">#{booking.id}</td>
+                            <td className="px-4 py-4 text-sm font-medium">{getTourNameByDepartureId(booking.tourDepartureId)}</td>
+                            <td className="px-4 py-4 text-sm">{booking.customerName}</td>
+                            <td className="px-4 py-4 text-sm text-gray-500">{formatPhoneVN(booking.customerPhone)}</td>
+                            <td className="px-4 py-4 text-sm text-gray-500">{formatDate(booking.bookingDate)}</td>
+                            <td className="px-4 py-4 text-sm font-medium text-gray-900">{formatCurrency(booking.totalPrice)}</td>
+                            <td className="px-4 py-4">
+                                <StatusBadge status={booking.status} />
                             </td>
-                            <td className="px-6 py-4">{getDriverName(booking.driverId)}</td>
-                            <td className="px-6 py-4 text-right whitespace-nowrap">
-
-                                <button onClick={() => handleOpenModal(booking)} className="text-primary hover:text-blue-900 mr-4" title="Xem / Sửa">
+                            <td className="px-4 py-4 text-sm">{getDriverName(booking.driverId)}</td>
+                            <td className="px-4 py-4 text-right whitespace-nowrap">
+                                <button onClick={() => handleOpenModal(booking)} className="text-primary hover:text-blue-900 mr-3" title="Xem / Sua">
                                     <PencilIcon className="h-5 w-5 inline-block" />
                                 </button>
-
-                                {/* === NÚT XÓA ĐÃ ĐƯỢC BỔ SUNG === */}
-                                <button onClick={() => handleDeleteBooking(booking.id)} className="text-red-600 hover:text-red-900" title="Xóa">
+                                <button onClick={() => handleDeleteBooking(booking.id)} className="text-red-600 hover:text-red-900" title="Xoa">
                                     <TrashIcon className="h-5 w-5 inline-block" />
                                 </button>
-
                             </td>
                         </tr>
                     ))}
+                    {filteredBookings.length === 0 && (
+                        <tr>
+                            <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                                Khong co booking nao{filterStatus !== 'all' ? ` o trang thai "${BOOKING_STATUS_LABELS[filterStatus]}"` : ''}.
+                            </td>
+                        </tr>
+                    )}
                     </tbody>
                 </table>
             </div>
 
-            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Chi tiết Booking" size="lg">
+            {/* Modal chi tiet Booking */}
+            <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Chi tiet Booking" size="lg">
                 {currentBooking && (
                     <EditBookingForm
                         booking={currentBooking}
+                        departure={getDepartureByBooking(currentBooking)}
                         availableDrivers={availableDrivers}
+                        allDrivers={drivers}
                         onSave={handleSaveBooking}
                         onCancel={() => setIsModalOpen(false)}
                     />
                 )}
             </Modal>
 
-            {/* Popup xác nhận dùng chung (warning Yes/No) */}
+            {/* Popup xac nhan xoa */}
             <ConfirmModal
                 isOpen={isConfirmOpen}
                 onClose={() => setIsConfirmOpen(false)}
                 onConfirm={handleConfirmDelete}
-                title="Xóa booking?"
-                message="Việc xóa booking có thể không hoàn lại số chỗ. Bạn có chắc chắn muốn xóa?"
-                confirmText="Đồng ý"
-                cancelText="Hủy"
+                title="Xoa booking?"
+                message="Viec xoa booking co the khong hoan lai so cho. Ban co chac chan muon xoa?"
+                confirmText="Dong y"
+                cancelText="Huy"
                 type="warning"
             />
         </div>
     );
 };
 
-// --- Component Form Sửa Booking (Giữ nguyên) ---
+// --- Component Form Sua Booking (nang cap voi SearchableComboBox + Status Flow) ---
 interface EditBookingFormProps {
     booking: AdminBooking;
+    departure?: TourDeparture;
     availableDrivers: Driver[];
-    onSave: (updatedData: { status: AdminBooking['status'], driverId: string | null }) => void;
+    allDrivers: Driver[];
+    onSave: (updatedData: { status: BookingStatus, driverId: string | null }) => void;
     onCancel: () => void;
 }
-const EditBookingForm: React.FC<EditBookingFormProps> = ({ booking, availableDrivers, onSave, onCancel }) => {
-    const [status, setStatus] = useState(booking.status);
-    const [driverId, setDriverId] = useState(booking.driverId || null);
+
+const EditBookingForm: React.FC<EditBookingFormProps> = ({
+    booking, departure, availableDrivers, allDrivers, onSave, onCancel
+}) => {
+    const [status, setStatus] = useState<BookingStatus>(booking.status);
+    const [driverId, setDriverId] = useState<string | null>(booking.driverId || null);
+
+    // Lấy các trạng thái hợp lệ tiếp theo + trạng thái hiện tại
+    const allowedStatuses: BookingStatus[] = [
+        booking.status,
+        ...BOOKING_NEXT_STATUSES[booking.status]
+    ];
+
+    // Logic kiểm tra: Chỉ cho gán tài xế khi status là Confirmed hoặc Assigned
+    const canAssignDriver = status === 'Confirmed' || status === 'Assigned';
+
+    // Tạo options cho SearchableComboBox tài xế
+    const driverOptions: ComboBoxOption[] = availableDrivers.map(d => ({
+        value: d.id,
+        label: d.name,
+        sublabel: `${d.phone}${d.licensePlate ? ' | ' + d.licensePlate : ''} - Ranh`,
+    }));
+    // Nếu booking đã gán tài xế nhưng tài xế đã bận, vẫn hiển thị
+    if (booking.driverId && !availableDrivers.find(d => d.id === booking.driverId)) {
+        const assignedDriver = allDrivers.find(d => d.id === booking.driverId);
+        if (assignedDriver) {
+            driverOptions.unshift({
+                value: assignedDriver.id,
+                label: assignedDriver.name,
+                sublabel: `${assignedDriver.phone} - Da gan (dang ban)`,
+            });
+        }
+    }
+
+    // Logic hủy tour: Cảnh báo nếu hủy gần ngày khởi hành
+    const getCancelWarning = (): string | null => {
+        if (status !== 'Cancelled') return null;
+        if (!departure) return null;
+
+        const hoursUntil = (new Date(departure.startDate).getTime() - Date.now()) / (1000 * 60 * 60);
+        if (hoursUntil < 0) return 'Tour da bat dau. Khong hoan tien.';
+        if (hoursUntil < 24) return 'Huy trong vong 24h truoc khoi hanh. Chi hoan 50% tien.';
+        return 'Huy truoc 24h. Hoan tien 100%.';
+    };
+
+    const cancelWarning = getCancelWarning();
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        // Khi chuyển sang Assigned, bắt buộc phải có tài xế
+        if (status === 'Assigned' && !driverId) {
+            alert('Vui long gan tai xe truoc khi chuyen sang trang thai "Da gan tai xe".');
+            return;
+        }
         onSave({ status, driverId });
-    };
-
-    const getDriverName = (driverId: string | null | undefined) => {
-        if (!driverId) return 'Chưa gán';
-        return availableDrivers.find(d => d.id === driverId)?.name || 'Đã gán';
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="p-4 border rounded-md bg-gray-50">
-                <p><strong>Khách hàng:</strong> {booking.customerName}</p>
-                <p><strong>Email:</strong> {booking.customerEmail}</p>
-                <p><strong>SĐT:</strong> {booking.customerPhone}</p>
-                <p><strong>Số khách:</strong> {booking.numberOfGuests}</p>
-                <p><strong>Tổng tiền:</strong> {formatCurrency(booking.totalPrice)}</p>
+            {/* Thông tin khách hàng */}
+            <div className="p-4 border rounded-xl bg-gray-50 space-y-1">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                    <p><strong>Khach hang:</strong> {booking.customerName}</p>
+                    <p><strong>Email:</strong> {booking.customerEmail}</p>
+                    <p><strong>SDT:</strong> {formatPhoneVN(booking.customerPhone)}</p>
+                    <p><strong>So khach:</strong> {booking.numberOfGuests} nguoi</p>
+                    <p><strong>Ngay dat:</strong> {formatDate(booking.bookingDate)}</p>
+                    <p><strong>Tong tien:</strong> <span className="text-red-600 font-bold">{formatCurrency(booking.totalPrice)}</span></p>
+                </div>
+            </div>
+
+            {/* Trạng thái hiện tại */}
+            <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-500">Trang thai hien tai:</span>
+                <StatusBadge status={booking.status} size="md" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Cập nhật trạng thái (chỉ hiện các trạng thái hợp lệ) */}
                 <div>
-                    <label className="label">Cập nhật Trạng thái</label>
+                    <label className="label">Chuyen trang thai</label>
                     <select
                         value={status}
-                        onChange={(e) => setStatus(e.target.value as AdminBooking['status'])}
+                        onChange={(e) => setStatus(e.target.value as BookingStatus)}
                         className="input"
                     >
-                        <option value="Pending">Chờ duyệt</option>
-                        <option value="Confirmed">Đã xác nhận</option>
-                        <option value="InProcess">Đang thực hiện</option>
-                        <option value="Cancelled">Đã hủy</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label className="label">Gán Tài xế (Chỉ tài xế rảnh)</label>
-                    <select value={driverId || ''} onChange={(e) => setDriverId(e.target.value || null)} className="input" disabled={status !== 'Confirmed'}>
-                        <option value="">Chưa gán</option>
-                        {/* Lựa chọn tài xế đã gán (kể cả khi đã bận) */}
-                        {booking.driverId && !availableDrivers.find(d => d.id === booking.driverId) && (
-                            <option value={booking.driverId} disabled>
-                                {getDriverName(booking.driverId)} (Đã gán)
-                            </option>
-                        )}
-                        {availableDrivers.map(driver => (
-                            <option key={driver.id} value={driver.id}>
-                                {driver.name} (Rảnh)
+                        {allowedStatuses.map(s => (
+                            <option key={s} value={s}>
+                                {BOOKING_STATUS_LABELS[s]}
                             </option>
                         ))}
                     </select>
-                    {status !== 'Confirmed' && (
-                        <p className="text-xs text-gray-500 mt-1">Phải "Xác nhận" booking trước khi gán tài xế.</p>
+
+                    {/* Cảnh báo khi hủy */}
+                    {cancelWarning && (
+                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
+                            {cancelWarning}
+                        </div>
+                    )}
+                </div>
+
+                {/* Gán tài xế bằng SearchableComboBox */}
+                <div>
+                    <SearchableComboBox
+                        label="Gan tai xe"
+                        options={driverOptions}
+                        value={driverId}
+                        onChange={setDriverId}
+                        placeholder="Chon tai xe..."
+                        disabled={!canAssignDriver}
+                        emptyText="Khong co tai xe ranh"
+                    />
+                    {!canAssignDriver && (
+                        <p className="text-xs text-gray-500 mt-1">
+                            Phai "Xac nhan" booking truoc khi gan tai xe.
+                        </p>
                     )}
                 </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
-                <button type="button" onClick={onCancel} className="btn-secondary">Đóng</button>
-                <button type="submit" className="btn-primary">Lưu thay đổi</button>
+            {/* Nút hành động */}
+            <div className="flex justify-end space-x-3 pt-4 border-t">
+                <button type="button" onClick={onCancel} className="btn-secondary">Dong</button>
+                <button type="submit" className="btn-primary">Luu thay doi</button>
             </div>
         </form>
     );
-}
+};
 
 export default BookingManagementPage;

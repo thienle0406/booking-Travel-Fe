@@ -1,20 +1,20 @@
 // src/layouts/UserLayout.tsx
 import React from 'react';
 import { Outlet } from 'react-router-dom';
-import Header from '../components/Header'; // Import Header (style "Travo" mới)
-import Footer from '../components/Footer'; // Import Footer (style "Travo" mới)
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import ZaloButton from '../components/ZaloButton';
 
 const UserLayout: React.FC = () => {
     return (
         <div className="flex flex-col min-h-screen">
             <Header />
             <main className="flex-grow">
-                {/* Outlet là nơi React Router render các trang con (Page)
-          ví dụ: HomePage, ContactPage, PolicyPage...
-        */}
                 <Outlet />
             </main>
             <Footer />
+            {/* Nut bong bong Zalo + Hotline - hien thi tren moi trang user */}
+            <ZaloButton />
         </div>
     );
 };

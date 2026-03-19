@@ -13,6 +13,7 @@ import {
     EnvelopeIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const Header = () => {
     const { isAuthenticated, logout, user } = useAuth();
@@ -91,13 +92,8 @@ const Header = () => {
                         <div className="hidden md:flex items-center space-x-4">
                             {isAuthenticated ? (
                                 <>
-                                    {/* Cart */}
-                                    <button className="text-gray-600 hover:text-primary transition-colors relative">
-                                        <ShoppingCartIcon className="h-6 w-6" />
-                                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                                            0
-                                        </span>
-                                    </button>
+                                    {/* Notification Bell */}
+                                    <NotificationBell />
 
                                     {/* User Dropdown */}
                                     <div className="relative group">
